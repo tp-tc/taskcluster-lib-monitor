@@ -30,8 +30,6 @@ suite('Sentry', () => {
         done();
       });
 
-    monitor.sentry.client.on('error', done);
-
     await monitor.reportError('create sentry error test');
   });
 

@@ -9,62 +9,62 @@ let Statsum = require('statsum');
 class Monitor {
 
   constructor (authClient, sentryClient, statsumClient, opts) {
-    this.opts = opts;
-    this.auth = authClient;
-    this.sentry = sentryClient;
-    this.statsum = statsumClient;
+    this._opts = opts;
+    this._auth = authClient;
+    this._sentry = sentryClient;
+    this._statsum = statsumClient;
+
+    if (opts.reportStatsumErrors) {
+      this._statsum.on('error', err => this.reportError(err, 'warning'));
+    }
   }
 
   async reportError (err, level='error') {
-    this.sentry = await setupSentry(
-        this.auth,
-        this.opts.project,
-        this.opts.patchGlobal,
-        this.sentry);
-    this.sentry.client.captureException(err, {level});
+    if (!this._sentry.expires || Date.parse(this._sentry.expires) <= Date.now()) {
+      let sentryInfo = await this._auth.sentryDSN(this._opts.project);
+      this._sentry.client = new raven.Client(sentryInfo.dsn.secret);
+      this._sentry.expires = sentryInfo.expires;
+      if (this._opts.patchGlobal) {
+        this._sentry.client.patchGlobal((logged, err) => {
+          console.log(err.stack);
+          if (logged) {
+            console.log('Finished reporting fatal error to sentry. Exiting now.');
+          } else {
+            console.log('Failed to report fatal error to sentry! Exiting now.');
+          }
+          process.exit(1);
+        });
+      }
+    }
+    this._sentry.client.captureException(err, {level});
   }
 
   count (key, val) {
-    this.statsum.count(key, val);
+    this._statsum.count(key, val);
   }
 
   measure (key, val) {
-    this.statsum.measure(key, val);
+    this._statsum.measure(key, val);
   }
 
   async flush () {
-    await this.statsum.flush();
+    await this._statsum.flush();
   }
 
   prefix (prefix) {
     return new Monitor(
-      this.auth,
-      this.sentry,
-      this.statsum.prefix(prefix),
-      this.opts
+      this._auth,
+      this._sentry,
+      this._statsum.prefix(prefix),
+      this._opts
     );
   }
 }
 
-async function setupSentry (auth, project, patchGlobal, sentry = {}) {
-  if (!sentry.expires || Date.parse(sentry.expires) <= Date.now()) {
-    let sentryInfo = await auth.sentryDSN(project);
-    sentry.client = new raven.Client(sentryInfo.dsn.secret);
-    sentry.expires = sentryInfo.expires;
-    if (patchGlobal) {
-      sentry.client.patchGlobal(() => {
-        console.log('Finished reporting fatal error to sentry. Exiting now.');
-        process.exit(1);
-      });
-    }
-  }
-  return sentry;
-}
-
 async function monitor (options) {
   assert(options.credentials, 'Must provide taskcluster credentials!');
+  assert(options.project, 'Must provide a project name!');
   let opts = _.defaults(options, {
-    project: require(require('app-root-dir').get() + '/package.json').name,
     patchGlobal: true,
     reportStatsumErrors: true,
   });
@@ -74,22 +74,14 @@ async function monitor (options) {
   });
 
   let statsumClient = new Statsum(
-    async (project) => { return await authClient.statsumToken(project); },
+    project => authClient.statsumToken(project),
     {
       project: opts.project,
-      emitErrors: true,
+      emitErrors: opts.reportStatsumErrors,
     }
   );
 
-  let sentryClient = await setupSentry(authClient, opts.project, opts.patchGlobal);
-
-  if (opts.reportStatsumErrors) {
-    statsumClient.on('error', (err) => {
-      sentryClient.client.captureException(err, {level: 'warning'});
-    });
-  }
-
-  return new Monitor(authClient, sentryClient, statsumClient, opts);
+  return new Monitor(authClient, {}, statsumClient, opts);
 };
 
 module.exports = monitor;
