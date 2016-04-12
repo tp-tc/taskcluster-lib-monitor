@@ -2,16 +2,16 @@ let debug = require('debug')('taskcluster-lib-monitor');
 let _ = require('lodash');
 let assert = require('assert');
 let Promise = require('promise');
-var taskcluster = require('taskcluster-client');
-var raven = require('raven');
+let taskcluster = require('taskcluster-client');
+let raven = require('raven');
 let Statsum = require('statsum');
 
 class Monitor {
 
-  constructor (authClient, sentryClient, statsumClient, opts) {
+  constructor (authClient, sentry, statsumClient, opts) {
     this._opts = opts;
     this._auth = authClient;
-    this._sentry = sentryClient;
+    this._sentry = sentry; // This must be a Promise that resolves to {client, expires}
     this._statsum = statsumClient;
 
     if (opts.reportStatsumErrors) {
@@ -33,12 +33,20 @@ class Monitor {
   }
 
   async reportError (err, level='error') {
-    if (!this._sentry.expires || Date.parse(this._sentry.expires) <= Date.now()) {
-      let sentryInfo = await this._auth.sentryDSN(this._opts.project);
-      this._sentry.client = new raven.Client(sentryInfo.dsn.secret);
-      this._sentry.expires = sentryInfo.expires;
-    }
-    this._sentry.client.captureException(err, {level});
+    this._sentry = this._sentry.then(async (sentry) => {
+      if (!sentry.expires || Date.parse(sentry.expires) <= Date.now()) {
+        let sentryInfo = await this._auth.sentryDSN(this._opts.project);
+        return {
+          client: new raven.Client(sentryInfo.dsn.secret),
+          expires: sentryInfo.expires,
+        };
+      }
+      return sentry;
+    }).catch(err => {});
+
+    this._sentry.then(sentry => {
+      sentry.client.captureException(err, {level});
+    });
   }
 
   count (key, val) {
@@ -83,7 +91,9 @@ async function monitor (options) {
     }
   );
 
-  return new Monitor(authClient, {}, statsumClient, opts);
+  let sentry = Promise.resolve({client: null, expires: new Date(0)});
+
+  return new Monitor(authClient, sentry, statsumClient, opts);
 };
 
 module.exports = monitor;

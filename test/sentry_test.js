@@ -31,6 +31,7 @@ suite('Sentry', () => {
       });
 
     await monitor.reportError('create sentry error test');
+    await monitor.reportError('another time');
   });
 
 });
