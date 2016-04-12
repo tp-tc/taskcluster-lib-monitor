@@ -17,6 +17,19 @@ class Monitor {
     if (opts.reportStatsumErrors) {
       this._statsum.on('error', err => this.reportError(err, 'warning'));
     }
+
+    if (opts.patchGlobal) {
+      process.on('uncaughtException', (err) => {
+        console.log(err.stack);
+        this.reportError(err);
+        process.exit(1);
+      });
+      process.on('unhandledRejection', (reason, p) => {
+        let err = 'Unhandled Rejection at: Promise ' + p + ' reason: ' + reason;
+        console.log(err);
+        this.reportError(err, 'warning');
+      });
+    }
   }
 
   async reportError (err, level='error') {
@@ -24,17 +37,6 @@ class Monitor {
       let sentryInfo = await this._auth.sentryDSN(this._opts.project);
       this._sentry.client = new raven.Client(sentryInfo.dsn.secret);
       this._sentry.expires = sentryInfo.expires;
-      if (this._opts.patchGlobal) {
-        this._sentry.client.patchGlobal((logged, err) => {
-          console.log(err.stack);
-          if (logged) {
-            console.log('Finished reporting fatal error to sentry. Exiting now.');
-          } else {
-            console.log('Failed to report fatal error to sentry! Exiting now.');
-          }
-          process.exit(1);
-        });
-      }
     }
     this._sentry.client.captureException(err, {level});
   }
