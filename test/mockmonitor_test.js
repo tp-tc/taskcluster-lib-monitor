@@ -42,7 +42,15 @@ suite('MockMonitor', () => {
   });
 
   test('should measure', function () {
-    monitor.measure('test-key', [1, 2, 3]);
+    monitor.measure('test-key', 1);
+    monitor.measure('test-key', 2);
+    monitor.measure('test-key', 3);
     assert.deepEqual(monitor.measures, {'mm.test-key': [1, 2, 3]});
+  });
+
+  test('should reject malformed measures', function () {
+    assert.throws(() => monitor.measure('a', [1, 2, 3]), Error);
+    assert.throws(() => monitor.measure('a', 'bc'), Error);
+    assert.throws(() => monitor.measure('a', {b: 2}), Error);
   });
 });

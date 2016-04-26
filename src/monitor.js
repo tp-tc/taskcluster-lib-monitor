@@ -90,6 +90,7 @@ class MockMonitor {
 
   measure (key, val) {
     let k = this._key(key);
+    assert(typeof val === 'number', 'Measurement value must be a number');
     this.measures[k] = (this.measures[k] || []).concat(val);
   }
 
