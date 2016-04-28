@@ -181,6 +181,16 @@ class MockMonitor {
     this.measures[k] = (this.measures[k] || []).concat(val);
   }
 
+  timedHandler (name, handler) {
+    return async (message) => { };
+  }
+
+  expressMiddleware (name) {
+    return (req, res, next) => {
+      next();
+    };
+  }
+
   _key (key) {
     let p = '.';
     if (this._opts.prefix) {
