@@ -77,6 +77,64 @@ class Monitor {
       newopts
     );
   }
+
+  // Given a function that operates on a
+  // single message, this will time it and
+  // report to statsum.
+  timedHandler(name, handler) {
+    return async (message) => {
+      let start = process.hrtime();
+      let success = 'success';
+      try {
+        await handler(message);
+      } catch (e) {
+        success = 'failure';
+        throw e;
+      } finally {
+        let d = process.hrtime(start);
+        this.measure(name + '.' + success, d[0] * 1000 + (d[1] / 1000000));
+        this.measure(name + '.all', d[0] * 1000 + (d[1] / 1000000));
+      }
+    }
+  }
+
+  // Given an express api method, this will time it
+  // and report to statsum.
+  expressMiddleware(method) {
+    return (req, res, next) => {
+      let sent = false;
+      let start = process.hrtime();
+      let send = () => {
+        try {
+          // Avoid sending twice
+          if (sent) {
+            return;
+          }
+          sent = true;
+
+          let d = process.hrtime(start);
+
+          let success = 'success';
+          if (res.statusCode >= 500) {
+            success = 'server-error';
+          } else if (res.statusCode >= 400) {
+            success = 'client-error';
+          }
+
+          for (let stat of [success, 'all']) {
+            let k = [method, stat].join('.');
+            monitor.measure(k, d[0] * 1000 + (d[1] / 1000000));
+            monitor.count(k);
+          }
+        } catch (e) {
+          debug("Error while compiling response times: %s, %j", err, err, err.stack);
+        }
+      };
+      res.once('finish', send);
+      res.once('close', send);
+      next();
+    };
+  }
 }
 
 class MockMonitor {
