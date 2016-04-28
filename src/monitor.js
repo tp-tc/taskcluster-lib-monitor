@@ -4,6 +4,7 @@ let assert = require('assert');
 let Promise = require('promise');
 let taskcluster = require('taskcluster-client');
 let raven = require('raven');
+let usage = require('usage');
 let Statsum = require('statsum');
 
 class Monitor {
@@ -29,6 +30,19 @@ class Monitor {
         console.log(err);
         this.reportError(err, 'warning');
       });
+    }
+
+    if (!opts.isPrefixed && opts.reportUsage) {
+      setInterval(() => {
+        usage.lookup(process.pid, {keepHistory: true}, (err, result) => {
+          if (err) {
+            debug('Failed to get usage statistics, err: %s, %j',  err, err, err.stack);
+            return;
+          }
+          this.measure('cpu', result.cpu);
+          this.measure('mem', result.memory);
+        });
+      }, 60 * 1000);
     }
   }
 
@@ -81,26 +95,29 @@ class Monitor {
   // Given a function that operates on a
   // single message, this will time it and
   // report to statsum.
-  timedHandler(name, handler) {
+  timedHandler (name, handler) {
     return async (message) => {
       let start = process.hrtime();
       let success = 'success';
       try {
         await handler(message);
       } catch (e) {
-        success = 'failure';
+        success = 'error';
         throw e;
       } finally {
         let d = process.hrtime(start);
-        this.measure(name + '.' + success, d[0] * 1000 + (d[1] / 1000000));
-        this.measure(name + '.all', d[0] * 1000 + (d[1] / 1000000));
+        for (let stat of [success, 'all']) {
+          let k = [name, stat].join('.');
+          this.measure(k, d[0] * 1000 + d[1] / 1000000);
+          this.count(k);
+        }
       }
-    }
+    };
   }
 
   // Given an express api method, this will time it
   // and report to statsum.
-  expressMiddleware(method) {
+  expressMiddleware (name) {
     return (req, res, next) => {
       let sent = false;
       let start = process.hrtime();
@@ -122,12 +139,12 @@ class Monitor {
           }
 
           for (let stat of [success, 'all']) {
-            let k = [method, stat].join('.');
-            monitor.measure(k, d[0] * 1000 + (d[1] / 1000000));
-            monitor.count(k);
+            let k = [name, stat].join('.');
+            this.measure(k, d[0] * 1000 + d[1] / 1000000);
+            this.count(k);
           }
         } catch (e) {
-          debug("Error while compiling response times: %s, %j", err, err, err.stack);
+          debug('Error while compiling response times: %s, %j', err, err, err.stack);
         }
       };
       res.once('finish', send);
@@ -194,6 +211,7 @@ async function monitor (options) {
   let opts = _.defaults(options, {
     patchGlobal: true,
     reportStatsumErrors: true,
+    reportUsage: true,
     isPrefixed: false,
   });
 
