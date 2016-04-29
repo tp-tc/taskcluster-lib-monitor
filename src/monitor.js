@@ -182,7 +182,7 @@ class MockMonitor {
   }
 
   timedHandler (name, handler) {
-    return async (message) => { };
+    return async (message) => { await handler(message); };
   }
 
   expressMiddleware (name) {
