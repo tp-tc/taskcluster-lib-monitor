@@ -4,7 +4,6 @@ let assert = require('assert');
 let Promise = require('promise');
 let taskcluster = require('taskcluster-client');
 let raven = require('raven');
-let usage = require('usage');
 let utils = require('./utils');
 let Statsum = require('statsum');
 
@@ -31,19 +30,6 @@ class Monitor {
         console.log(err);
         this.reportError(err, 'warning');
       });
-    }
-
-    if (!opts.isPrefixed && opts.reportUsage) {
-      setInterval(() => {
-        usage.lookup(process.pid, {keepHistory: true}, (err, result) => {
-          if (err) {
-            debug('Failed to get usage statistics, err: %s, %j',  err, err, err.stack);
-            return;
-          }
-          this.measure('cpu', result.cpu);
-          this.measure('mem', result.memory);
-        });
-      }, 60 * 1000);
     }
   }
 
@@ -99,6 +85,10 @@ class Monitor {
 
   expressMiddleware (name) {
     return utils.expressMiddleware(this, name);
+  }
+
+  resources (process, interval = 60) {
+    return utils.resources(this, process, interval);
   }
 }
 
@@ -169,6 +159,10 @@ class MockMonitor {
   expressMiddleware (name) {
     return utils.expressMiddleware(this, name);
   }
+
+  resources (process, interval = 60) {
+    return utils.resources(this, process, interval);
+  }
 }
 
 async function monitor (options) {
@@ -177,7 +171,6 @@ async function monitor (options) {
   let opts = _.defaults(options, {
     patchGlobal: true,
     reportStatsumErrors: true,
-    reportUsage: true,
     isPrefixed: false,
   });
 
