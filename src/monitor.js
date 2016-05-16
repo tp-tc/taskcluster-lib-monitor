@@ -69,7 +69,7 @@ class Monitor {
     return utils.expressMiddleware(this, name);
   }
 
-  resources (process, interval = 60) {
+  resources (process, interval = 10) {
     return utils.resources(this, process, interval);
   }
 }
@@ -142,7 +142,7 @@ class MockMonitor {
     return utils.expressMiddleware(this, name);
   }
 
-  resources (process, interval = 60) {
+  resources (process, interval = 10) {
     return utils.resources(this, process, interval);
   }
 }
