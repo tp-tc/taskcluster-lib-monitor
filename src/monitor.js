@@ -14,6 +14,7 @@ class Monitor {
     this._auth = authClient;
     this._sentry = sentry; // This must be a Promise that resolves to {client, expires}
     this._statsum = statsumClient;
+    this._resourceInterval = null;
   }
 
   async reportError (err, level='error') {
@@ -80,6 +81,7 @@ class MockMonitor {
     this.counts = counts;
     this.measures = measures;
     this.errors = errors;
+    this._resourceInterval = null;
   }
 
   async reportError (err, level='error') {
