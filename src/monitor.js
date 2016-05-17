@@ -153,6 +153,7 @@ async function monitor (options) {
   let opts = _.defaults(options, {
     patchGlobal: true,
     reportStatsumErrors: true,
+    resourceInterval: 10 * 1000,
   });
 
   if (opts.mock) {
@@ -190,6 +191,10 @@ async function monitor (options) {
       console.log(err);
       m.reportError(err, 'warning');
     });
+  }
+
+  if (opts.process) {
+    utils.resources(m, opts.process, opts.resourceInterval);
   }
 
   return m;
