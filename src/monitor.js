@@ -73,6 +73,10 @@ class Monitor {
   resources (process, interval = 10) {
     return utils.resources(this, process, interval);
   }
+
+  stopResourceMonitoring () {
+    clearInterval(this._resourceInterval);
+  }
 }
 
 class MockMonitor {
@@ -146,6 +150,10 @@ class MockMonitor {
 
   resources (process, interval = 10) {
     return utils.resources(this, process, interval);
+  }
+
+  stopResourceMonitoring () {
+    clearInterval(this._resourceInterval);
   }
 }
 

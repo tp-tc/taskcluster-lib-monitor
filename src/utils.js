@@ -82,7 +82,7 @@ export function timedHandler (monitor, name, handler) {
  */
 export function resources (monitor, proc, seconds) {
   if (monitor._resourceInterval) {
-    clearInterval(monitor._resourceInterval)
+    clearInterval(monitor._resourceInterval);
   }
 
   let interval = setInterval(() => {
