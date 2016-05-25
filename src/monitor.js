@@ -17,7 +17,7 @@ class Monitor {
     this._resourceInterval = null;
   }
 
-  async reportError(err, level='error') {
+  async reportError(err, level='error', tags={}) {
     this._sentry = this._sentry.then(async (sentry) => {
       if (!sentry.expires || Date.parse(sentry.expires) <= Date.now()) {
         let sentryInfo = await this._auth.sentryDSN(this._opts.project);
@@ -30,7 +30,13 @@ class Monitor {
     }).catch(err => {});
 
     this._sentry.then(sentry => {
-      sentry.client.captureException(err, {level});
+      sentry.client.captureException(err, {
+        tags: _.defaults({
+          prefix: this._opts.project + (this._opts.prefix || '.root'),
+          process: this._opts.process || 'unknown',
+        }, tags),
+        level,
+      });
     });
   }
 
@@ -54,6 +60,7 @@ class Monitor {
 
   prefix(prefix) {
     let newopts = _.cloneDeep(this._opts);
+    newopts.prefix = (this._opts.prefix || '')  + '.' + prefix;
     return new Monitor(
       this._auth,
       this._sentry,
@@ -71,6 +78,7 @@ class Monitor {
   }
 
   resources(process, interval = 10) {
+    this._opts.process = process;
     return utils.resources(this, process, interval);
   }
 
@@ -149,6 +157,7 @@ class MockMonitor {
   }
 
   resources(process, interval = 10) {
+    this._opts.process = process;
     return utils.resources(this, process, interval);
   }
 
