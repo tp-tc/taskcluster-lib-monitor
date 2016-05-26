@@ -101,7 +101,7 @@ export function resources(monitor, proc, seconds) {
   return () => clearInterval(interval);
 }
 
-export function timer (monitor, prefix, funcOrPromise) {
+export function timer(monitor, prefix, funcOrPromise) {
   let start = process.hrtime();
   let done = () => {
     let d = process.hrtime(start);
