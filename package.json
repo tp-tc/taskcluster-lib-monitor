@@ -1,6 +1,6 @@
 {
   "name": "taskcluster-lib-monitor",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "author": "Brian Stack <bstack@mozilla.com>",
   "description": "Make it easy to hook up monitoring and metrics for taskcluster services.",
   "license": "MPL-2.0",
@@ -22,20 +22,20 @@
     "promise": "^7.0.4",
     "raven": "^0.11.0",
     "statsum": "^0.4.1",
-    "taskcluster-client": "^0.23.16",
+    "taskcluster-client": "^1.0.1",
     "usage": "^0.7.1"
   },
   "devDependencies": {
     "babel-compile": "^2.0.0",
-    "babel-preset-taskcluster": "^2.0.1",
+    "babel-preset-taskcluster": "^2.3.0",
     "babel-eslint": "^6.0.0",
-    "mocha": "2.4.5",
+    "mocha": "2.5.3",
     "mocha-eslint": "^2.0.1",
     "mock-aws-s3": "^2.1.0",
     "nock": "^8.0.0",
     "source-map-support": "^0.4.0",
     "taskcluster-lib-testing": "^1.0.0",
-    "eslint-config-taskcluster": "^1.0.0",
+    "eslint-config-taskcluster": "^2.0.0",
     "eslint-plugin-taskcluster": "^1.0.0"
   },
   "main": "./lib/monitor.js"
