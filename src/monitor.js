@@ -18,6 +18,10 @@ class Monitor {
   }
 
   async reportError(err, level='error', tags={}) {
+    if (!_.isString(level)) {
+      tags = level;
+      level = 'error';
+    }
     this._sentry = this._sentry.then(async (sentry) => {
       if (!sentry.expires || Date.parse(sentry.expires) <= Date.now()) {
         let sentryInfo = await this._auth.sentryDSN(this._opts.project);
