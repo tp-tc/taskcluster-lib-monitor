@@ -33,13 +33,22 @@ class Monitor {
       return sentry;
     }).catch(err => {});
 
-    this._sentry.then(sentry => {
+    return this._sentry.then(sentry => {
       sentry.client.captureException(err, {
         tags: _.defaults({
           prefix: this._opts.project + (this._opts.prefix || '.root'),
           process: this._opts.process || 'unknown',
         }, tags),
         level,
+      });
+
+      return new Promise((accept, reject) => {
+        sentry.client.once('logged', () => {
+          accept('Succesfully logged error to Sentry.');
+        });
+        sentry.client.once('error', (e) => {
+          reject('Failed to log error to Sentry: ', e.reason);
+        });
       });
     });
   }
@@ -185,6 +194,7 @@ async function monitor(options) {
     patchGlobal: true,
     reportStatsumErrors: true,
     resourceInterval: 10 * 1000,
+    crashTimeout: 5 * 1000,
   });
 
   if (opts.mock) {
@@ -212,10 +222,22 @@ async function monitor(options) {
   }
 
   if (opts.patchGlobal) {
-    process.on('uncaughtException', (err) => {
+    process.on('uncaughtException', async (err) => {
+      console.log('Uncaught Exception! Attempting to report to Sentry and crash.');
       console.log(err.stack);
-      m.reportError(err);
-      process.exit(1);
+      setTimeout(() => {
+        console.log('Failed to report error to Sentry after timeout!');
+        process.exit(1);
+      }, opts.crashTimeout);
+      try {
+        await m.reportError(err);
+        console.log('Succesfully reported error to Sentry.');
+      } catch (e) {
+        console.log('Failed to report to Sentry with error:');
+        console.log(e);
+      } finally {
+        process.exit(1);
+      }
     });
     process.on('unhandledRejection', (reason, p) => {
       let err = 'Unhandled Rejection at: Promise ' + p + ' reason: ' + reason;
