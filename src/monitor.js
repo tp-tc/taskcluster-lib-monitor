@@ -17,7 +17,7 @@ class Monitor {
     this._resourceInterval = null;
   }
 
-  async reportError(err, level='error', tags={}) {
+  async reportError(err, level='error', tags={}, listen=false) {
     if (!_.isString(level)) {
       tags = level;
       level = 'error';
@@ -43,20 +43,33 @@ class Monitor {
       });
 
       return new Promise((accept, reject) => {
-        sentry.client.once('logged', () => {
-          accept('Succesfully logged error to Sentry.');
-        });
-        sentry.client.once('error', (e) => {
-          reject('Failed to log error to Sentry: ', e.reason);
-        });
+        if (!listen) {
+          // In the standard case, we have to reason to wait
+          // for this to complete. Generally we'll avoid adding
+          // listeners all over the place and so just accept()
+          // immediately.
+          accept();
+        } else {
+          let onLogged, onError;
+          onLogged = () => {
+            sentry.client.removeListener('error', onError);
+            accept();
+          };
+          onError = (e) => {
+            sentry.client.removeListener('logged', onLogged);
+            reject(new Error('Failed to log error to Sentry: ' + e));
+          };
+          sentry.client.once('logged', onLogged);
+          sentry.client.once('error', onError);
+        }
       });
     });
   }
 
   // captureError is an alias for reportError to match up
   // with the raven api better.
-  async captureError(err, level='error') {
-    this.reportError(err, level);
+  async captureError(err, level='error', tags={}, listen=false) {
+    this.reportError(err, level, tags, listen);
   }
 
   count(key, val) {
@@ -113,12 +126,12 @@ class MockMonitor {
     this._resourceInterval = null;
   }
 
-  async reportError(err, level='error') {
+  async reportError(err, level='error', tags={}, listen=false) {
     this.errors.push(err);
   }
 
-  async captureError(err, level='error') {
-    this.reportError(err, level);
+  async captureError(err, level='error', tags={}, listen=false) {
+    this.reportError(err, level, tags, listen);
   }
 
   count(key, val) {
@@ -230,7 +243,7 @@ async function monitor(options) {
         process.exit(1);
       }, opts.crashTimeout);
       try {
-        await m.reportError(err);
+        await m.reportError(err, 'fatal', {}, true);
         console.log('Succesfully reported error to Sentry.');
       } catch (e) {
         console.log('Failed to report to Sentry with error:');
