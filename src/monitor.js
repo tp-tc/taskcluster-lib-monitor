@@ -17,7 +17,7 @@ class Monitor {
     this._resourceInterval = null;
   }
 
-  async reportError(err, level='error', tags={}, listen=false) {
+  async reportError(err, level='error', tags={}, _listen=false) {
     if (!_.isString(level)) {
       tags = level;
       level = 'error';
@@ -43,7 +43,7 @@ class Monitor {
       });
 
       return new Promise((accept, reject) => {
-        if (!listen) {
+        if (!_listen) {
           // In the standard case, we have to reason to wait
           // for this to complete. Generally we'll avoid adding
           // listeners all over the place and so just accept()
@@ -68,8 +68,8 @@ class Monitor {
 
   // captureError is an alias for reportError to match up
   // with the raven api better.
-  async captureError(err, level='error', tags={}, listen=false) {
-    this.reportError(err, level, tags, listen);
+  async captureError(err, level='error', tags={}, _listen=false) {
+    this.reportError(err, level, tags, _listen);
   }
 
   count(key, val) {
@@ -126,12 +126,12 @@ class MockMonitor {
     this._resourceInterval = null;
   }
 
-  async reportError(err, level='error', tags={}, listen=false) {
+  async reportError(err, level='error', tags={}, _listen=false) {
     this.errors.push(err);
   }
 
-  async captureError(err, level='error', tags={}, listen=false) {
-    this.reportError(err, level, tags, listen);
+  async captureError(err, level='error', tags={}, _listen=false) {
+    this.reportError(err, level, tags, _listen);
   }
 
   count(key, val) {
