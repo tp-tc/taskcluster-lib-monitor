@@ -32,13 +32,13 @@ class Monitor {
       }
       return sentry;
     }).catch(err => {
-      console.log("Failed to get access to sentry, err: ", err.stack);
+      console.log('Failed to get access to sentry, err: %s, jsoN: %j', err.stack, err);
       return {client: null, expires: new Date(0)};
     });
 
     return this._sentry.then(sentry => {
       if (!sentry.client) {
-        console.log("Can't report to sentry, error not reported: ", err.stack);
+        console.log('Can\'t report to sentry, error not reported: ', err.stack);
         return Promise.resolve();
       }
       
