@@ -130,6 +130,7 @@ export function patchAWS(monitor, service) {
     r.on('complete', () => {
       let requestTime = (new Date()).getTime() - r.startTime.getTime();
       monitor.measure(operation + '.duration', requestTime);
+      monitor.count(operation + '.count', 1);
     });
     return r;
   };
