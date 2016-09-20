@@ -18,11 +18,11 @@ tasks:
         - push
   payload:
     maxRunTime: 3600
-    image: "quay.io/mrrrgn/ubuntu-ci:0.0.1"
+    image: "node:5"
     command:
       - "/bin/bash"
       - "-lc"
-      - "checkout-pull-request && npm install . && npm test"
+      - "git clone {{event.head.repo.url}} repo && cd repo && git checkout {{event.head.sha}} && npm install . && npm test"
     metadata:
       name: "taskcluster-lib-monitor test"
       description: "tests for metrics and monitoring library"
