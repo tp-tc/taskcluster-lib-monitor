@@ -59,6 +59,7 @@ async function monitor(options) {
   if (options.credentials) {
     let auth = new taskcluster.Auth({
       credentials: options.credentials,
+      baseDomain: options.baseDomain,
     });
     if (!statsumToken) {
       statsumToken = project => auth.statsumToken(project);
