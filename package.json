@@ -24,7 +24,7 @@
     "promise": "^7.0.4",
     "raven": "^0.11.0",
     "statsum": "^0.5.1",
-    "taskcluster-client": "^1.0.1",
+    "taskcluster-client": "git+https://github.com/tp-tc/taskcluster-client",
     "usage": "^0.7.1"
   },
   "devDependencies": {
