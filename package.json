@@ -8,9 +8,11 @@
     "compile": "babel-compile -p taskcluster src:lib test:.test",
     "prepublish": "npm run compile",
     "pretest": "npm run compile",
+    "install": "npm run compile",
     "test": "mocha .test/lint.js .test/*_test.js"
   },
   "files": [
+    "test", "src",
     "lib"
   ],
   "repository": {
@@ -25,7 +27,9 @@
     "raven": "^0.11.0",
     "statsum": "^0.5.1",
     "taskcluster-client": "git+https://github.com/tp-tc/taskcluster-client",
-    "usage": "^0.7.1"
+    "usage": "^0.7.1",
+    "babel-compile": "^2.0.0",
+    "babel-preset-taskcluster": "^3.0.0"
   },
   "devDependencies": {
     "babel-compile": "^2.0.0",
